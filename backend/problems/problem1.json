@@ -1,0 +1,17 @@
+{
+  "name": "A + B",
+  "description": "Given two integers A and B, output their sum.",
+  "io_format": {
+    "input": "Two integers A and B on one line.",
+    "output": "Single integer: A + B."
+  },
+  "tests": [
+    { "input": "1 2\n", "output": "3\n" },
+    { "input": "-5 7\n", "output": "2\n" },
+    { "input": "1000 2345\n", "output": "3345\n" }
+  ]
+}
+
+
+
+

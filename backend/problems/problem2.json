@@ -1,0 +1,22 @@
+{
+  "name": "FizzBuzz",
+  "description": "Print numbers from 1 to N. For multiples of 3 print Fizz, for multiples of 5 print Buzz, for multiples of both print FizzBuzz, otherwise print the number.",
+  "io_format": {
+    "input": "Single integer N.",
+    "output": "N lines, each line contains Fizz, Buzz, FizzBuzz, or the number."
+  },
+  "tests": [
+    {
+      "input": "5\n",
+      "output": "1\n2\nFizz\n4\nBuzz\n"
+    },
+    {
+      "input": "15\n",
+      "output": "1\n2\nFizz\n4\nBuzz\nFizz\n7\n8\nFizz\nBuzz\n11\nFizz\n13\n14\nFizzBuzz\n"
+    }
+  ]
+}
+
+
+
+
