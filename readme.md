@@ -1,97 +1,125 @@
-Real-Time Coding Contest Platform
+<h1> Real-Time Coding Contest Platform </h1>
 This repository contains the complete source code for a real-time coding contest platform developed as a full-stack project, featuring a live, containerized code judging backend and a reactive frontend UI.
 
 Project Overview
-The platform enables students to join coding contests, solve problems, submit code that is judged live inside Docker containers, and view live leaderboards. The backend is built with Spring Boot, and the frontend is built using React/Next.js with Tailwind CSS. The entire system is dockerized for easy local setup.
+The platform enables students to join coding contests, solve problems, submit code that is judged live inside Docker containers, and view live leaderboards. The backend is built with Express.js, and the frontend is built using React.js with Tailwind CSS. The entire system is dockerized for easy local setup.
 
 Setup Instructions
 Follow these steps to set up and run the application locally:
 
-Prerequisites
-Docker and Docker Compose installed on your machine
+Prerequisites :-
+-Docker and Docker Compose installed on your machine
+-Node.js and npm 
+-Running with Docker Compose
 
-Java JDK 11+ installed (optional if running via Docker only)
-
-Node.js and npm (optional if running frontend separately)
-
-Running with Docker Compose (Recommended)
 Clone this repository:
+-bash
+-git clone https://github.com/mokshhhhh/shodh-a-contest.git
+-cd <repository-folder>
 
-bash
-git clone <repository-url>
-cd <repository-folder>
 Build and start the services:
 
-bash
-docker-compose up --build
-This will start the backend Spring Boot API server, frontend React application, and the Dockerized judge environment.
+-bash
+-docker-compose up --build
+-This will start the backend API server, frontend React application, and the Dockerized judge environment.
 
-Open your browser at http://localhost:3000 to access the frontend UI.
+Open your browser at http://localhost:5173 to access the frontend UI.
 
 The database is pre-populated with a sample contest and problems for immediate testing.
 
-Running Backend Independently
-Navigate to the backend folder:
 
-bash
-cd backend
-Build the Spring Boot application:
+Backend Architecture & Workflow
+1. REST API Server
+Built with Express.js—minimal, stateless, and rapid for real-time judging and problem delivery.
 
-bash
-./mvnw clean package
-Run the application:
+Cross-origin (CORS) enabled for frontend communication.
 
-bash
-java -jar target/backend-0.0.1-SNAPSHOT.jar
-The backend service will start on port 8080.
+JSON parsing for large (~512KB) code payloads.
 
-Running Frontend Independently
-Navigate to the frontend folder:
+2. Problem Management
+Problems Directory:
+All coding problems are stored as .json files in a dedicated problems/ directory.
 
-bash
-cd frontend
-Install dependencies:
+Endpoints:
 
-bash
-npm install
-Run the development server:
+GET /problems returns metadata (id, name, description, io_format) for all available problems.
 
-bash
-npm run dev
-Access the frontend on http://localhost:3000.
+GET /problems/:id fetches complete details and testcases for a specific problem.
 
-API Design Overview
-The backend exposes the following RESTful endpoints:
+Benefits:
+File-based problems make it easy to add/edit questions without database migration.
 
-Endpoint	Method	Description	Request Body	Response
-/api/contests/{contestId}	GET	Fetch contest details including problems and info	N/A	JSON with contest details and problems
-/api/submissions	POST	Submit code for judging; adds submission to processing queue	{ "userId": "...", "contestId": "...", "problemId": "...", "language": "...", "code": "..." }	{ "submissionId": "..." }
-/api/submissions/{submissionId}	GET	Get status and result of a submission	N/A	`{ "status": "<Pending
-/api/contests/{contestId}/leaderboard	GET	Get live leaderboard for the contest	N/A	JSON array of users with scores and ranks
-Design Choices & Justification
-Backend Architecture
-Modular Service Design: The backend is structured into layers — REST controllers, service logic, and data repositories — for clear separation of concerns.
+3. Judging & Code Execution
+Endpoints:
 
-Asynchronous Submission Judging: Submissions are queued and processed asynchronously using Java concurrency utilities to ensure scalability and responsiveness.
+POST /run
+Executes user code in a Docker container, with user-provided or problem test input (ad-hoc single test).
 
-Docker-based Code Execution: User code runs securely inside isolated Docker containers with strict resource limits (CPU, memory, execution time) to prevent misuse and ensure fairness.
+Payload: { language, code, input?, problemId?, testIndex? }
 
-Data Persistence: Uses a relational database to persist users, contests, problems, and submissions, with pre-populated sample data for easy testing.
+Output: stdout, stderr, exit code, execution time, timeout flag.
 
-Frontend State Management
-React with Next.js: Provides Server-Side Rendering (SSR) for performance and SEO benefits.
+POST /submit
+Runs code against all official test cases for a problem and returns a verdict ('ACCEPTED' or 'REJECTED') along with per-test results.
 
-State Management: Local component state and React hooks are used for asynchronous polling and managing UI state since the app is mostly single-user focused per session.
+Payload: { language, code, problemId }
 
-Polling for Real-Time Updates: Submissions status and leaderboard data are polled at intervals to simulate live updates without requiring WebSocket complexity.
+Output: detailed verdict/test results.
 
-Tailwind CSS: Used for a lightweight and customizable styling approach that fast-tracks front-end development.
+How Judging Works:
 
-Docker Orchestration Challenges
-Security: Running untrusted user code safely required strict container resource constraints via Docker runtime flags and cleanup automation post-execution.
+Each run spins up a fresh Docker container with only the required runtime (Python/C++).
 
-Performance: Balancing container startup latency with responsiveness necessitated a lightweight base image optimized for the language runtime.
+Code and test input are mounted as files inside /work, with strict resource limits:
 
-Trade-offs: Chose polling over WebSocket for simplicity and time constraints at the cost of real-time immediacy; container reuse was avoided to preserve isolation, trading some efficiency.
+No outgoing network (--network none)
 
-This README aims to comprehensively guide setup, outline API usage, and explain the rationale behind key architectural decisions.
+CPU limit: 0.5 cores
+
+RAM limit: 256MB
+
+PIDs limit: 128
+
+Custom max execution time (4sec default)
+
+
+
+4. Docker Runner
+Centralized file: dockerRunner.js
+
+Supported Languages: Python 3.10 (alpine), C++ (GCC latest). Easily extensible through config and new Docker images.
+
+
+
+Typical Submission/Run Flow
+For /run:
+
+Receive code and input.
+
+Store as files in temp directory.
+
+Boot Docker container, run code with input, apply limits.
+
+Collect (stdout, stderr, exit code, timing, timeout).
+
+Respond with result and auto-clean temp files.
+
+For /submit:
+
+For each problem testcase, repeat the above (all testcases in series; could parallelize in future).
+
+Compare output to expected and return a pass/fail for each.
+
+Aggregate into AC/WA/RE verdict and return per-test results for transparency.
+
+Scalability and Extensibility
+Languages:
+New languages can be added by extending runInDocker with appropriate Docker images and run scripts.
+
+Problems/Contests:
+Can be expanded or managed via filesystem or eventually backed by a database for write-heavy production scenarios.
+
+Security:
+Further defense (e.g., seccomp/docker UID sandbox) can be added for production or open-internet usage.
+
+
