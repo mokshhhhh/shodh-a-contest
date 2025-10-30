@@ -110,7 +110,6 @@ For each problem testcase, repeat the above (all testcases in series; could para
 
 Compare output to expected and return a pass/fail for each.
 
-Aggregate into AC/WA/RE verdict and return per-test results for transparency.
 
 Scalability and Extensibility
 Languages:
